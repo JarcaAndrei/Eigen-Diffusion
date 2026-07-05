@@ -34,7 +34,7 @@ dataset_creation/  All scripts to get and adapt the data sets to the Diffusion-D
 1. **Create datasets** - previous step
 2. **Build embeddings** (SD folder; the same file serves both backbones):
    ```
-   python dataset_creation/get_embeddings.py --dataset_name pick --seed 42 \
+   python dataset_creation/get_embeddings.py --dataset_name <dataset_name>  --seed 42 \
        --data_dir . --out_dir all_embeddings
    ```
    Pick-a-pic can be used with `cache_dir` instead.
@@ -59,8 +59,8 @@ dataset_creation/  All scripts to get and adapt the data sets to the Diffusion-D
    (`<exp_dir>/<run>/checkpoint-N/lora/pytorch_lora_weights.safetensors`) For SD1.5
    (`<exp_dir>/<run>/checkpoint-N/transformer_lora/pytorch_lora_weights.safetensors`) For PixArt
    ```
-   python SD/inference.py       --dataset pick --exp_dir RUNS [--checkpoint N]
-   python PixArt/inference_pixart.py --dataset pick --exp_dir RUNS [--checkpoint N]
+   python SD/inference.py       --dataset <dataset_name> --exp_dir RUNS [--checkpoint N]
+   python PixArt/inference_pixart.py --dataset <dataset_name> --exp_dir RUNS [--checkpoint N]
    ```
    Writes one image per validation prompt + a `metadata.csv` per run.
 6. **Score** the generated images:
