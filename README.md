@@ -19,7 +19,7 @@ dataset_creation/  All scripts to get and adapt the data sets to the Diffusion-D
   pip install -r requirements.txt
 ```
 
-## Datasets
+## Dataset Names and How to Get Them
 - **pick** — Pick-a-Pic v1 (pickapic-anonymous/pickapic_v1).
 - **hpdv2** — Run `unpack_hpdv2.py` to unzip tars (https://huggingface.co/datasets/ymhao/HPDv2/tree/main) + jsons from the link. `create_hpdv2.py` to get the set at `hpdv2_pickapic_format/`.
 - **rapidata** — `split_rapidata.py` (writes `train_rapidata.txt` /
