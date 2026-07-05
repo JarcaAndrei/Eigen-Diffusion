@@ -42,7 +42,7 @@ dataset_creation/  All scripts to get and adapt the data sets to the Diffusion-D
 3. **Train** — edit and run the batch script, or call the trainer directly:
    ```
    chmod +x train_command.sh / chmod +x train_SD_batch.sh
-   ./train_SD_batch.sh                 # From SD1.5 path
+   ./train_SD_batch.sh                 # From SD path
    ./train_command.sh              # From PixArt path
    ```
    Selection hyperparameters: `--first_eigen` (Stage-1 budget), `--ratio` (Stage-2 = ratio×n1),
