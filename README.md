@@ -13,7 +13,6 @@ dataset_creation/  All scripts to get and adapt the data sets to the Diffusion-D
 
 ## Environment
 ```
-  source env/bin/activate
   python -m venv eigen-diffusion
   source eigen-diffusion/bin/activate
   pip install -r requirements.txt
