@@ -6,19 +6,20 @@ TRAIN_DATA_DIR="."               # dir holding the local datasets built by creat
 CACHE_DIR="path/to/cache"
 
 SEEDS=(42 43 44)
+STRATEGY="eigen"                 # eigen | kcenter | facility_location | kmeans++ | semdedup (same budget)
 FIRST_EIGEN=1024
 RATIO=6
 BIN_COUNT=4
 THRESHOLD=0.4
 THRESH_STAGE2=0.6
-MAX_STEPS=1792
+MAX_STEPS=1792                   # semdedup on rapidata --sft keeps 4,888 rows, 1222 steps for the same epochs
 WARMUP=150
 BATCH_SIZE=4
 BETA_DPO=5000
 LR=1e-5
 
 for seed in "${SEEDS[@]}"; do
-    OUTPUT="${seed}_${FIRST_EIGEN}_pixart_${DATASET_NAME}"
+    OUTPUT="${seed}_${FIRST_EIGEN}_${STRATEGY}_pixart_${DATASET_NAME}"
     accelerate launch --mixed_precision="fp16" train_scripts/train_pixart_dpo.py \
         --output_dir "$OUTPUT" \
         --seed="$seed" \
@@ -33,13 +34,14 @@ for seed in "${SEEDS[@]}"; do
         --lr_scheduler="constant_with_warmup" \
         --lr_warmup_steps="$WARMUP" \
         --learning_rate="$LR" \
-        --checkpointing_steps 1792 \
+        --checkpointing_steps "$MAX_STEPS" \
         --beta_dpo "$BETA_DPO" \
         --first_eigen="$FIRST_EIGEN" \
         --ratio="$RATIO" \
         --bin_count="$BIN_COUNT" \
         --threshold="$THRESHOLD" \
         --thresh_stage2="$THRESH_STAGE2" \
+        --strategy="$STRATEGY" \
         --sft              # turn off for DPO
         # --random         # random-selection ablation
         # --full           # full-scale baseline (no selection)

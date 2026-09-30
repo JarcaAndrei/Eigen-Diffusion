@@ -50,7 +50,8 @@ dataset_creation/  All scripts to get and adapt the data sets to the Diffusion-D
    Regime/ablation flags: `--sft` (SFT instead of DPO), `--random`
    (random-selection baseline, count-matched to the eigen subset), `--full`
    (full-scale baseline, no selection). **ROCO requires `--sft`.**
-
+   Coreset baselines: `--strategy` (`eigen` by default, or `kcenter`, `facility_location`, `kmeans++`, `semdedup`, with the same budget).
+   
    > The selection indices are into the tie-filtered, seed-shuffled (and, for
    > pick/hpdv2, 100k-capped) working set. The embeddings in step 2 must be built
    > with the **same `--seed`** as training, or the indices will not align (the

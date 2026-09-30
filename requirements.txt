@@ -1,3 +1,4 @@
+--extra-index-url https://download.pytorch.org/whl/cu128
 torch==2.10.0+cu128
 torchvision==0.25.0+cu128
 diffusers==0.36.0
@@ -13,3 +14,6 @@ pandas==3.0.0
 pillow==12.0.0
 tqdm==4.67.3
 matplotlib==3.10.8
+faiss-cpu==1.15.1
+sentencepiece==0.2.2
+protobuf==7.36.1

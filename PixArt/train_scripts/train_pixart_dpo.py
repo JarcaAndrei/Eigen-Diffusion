@@ -189,6 +189,11 @@ def parse_args():
              "eigen selection."
     )
     parser.add_argument(
+        "--strategy", type=str, default="eigen",
+        choices=["eigen", "kcenter", "facility_location", "kmeans++", "semdedup"],
+        help="Coreset baseline that replaces the eigen selection, with the same budget."
+    )
+    parser.add_argument(
         "--full", action="store_true",
         help="Full-scale baseline: train on the entire (tie-filtered) set."
     )
@@ -405,7 +410,8 @@ def main():
                 n_components = 1000,
                 variance_weighted = args.variance_weighted,
                 stratify = args.stratify,
-                sft = args.sft
+                sft = args.sft,
+                strategy = args.strategy
                 )
         elif args.dataset_name == "pickapic-anonymous/pickapic_v1":
             print("PickApic")
@@ -426,7 +432,8 @@ def main():
                 n_components = 1000,
                 variance_weighted = args.variance_weighted,
                 stratify = args.stratify,
-                sft = args.sft
+                sft = args.sft,
+                strategy = args.strategy
                 )
 
         elif args.dataset_name == "rapidata":
@@ -448,7 +455,8 @@ def main():
                 n_components = 1000,
                 variance_weighted = args.variance_weighted,
                 stratify = args.stratify,
-                sft = args.sft
+                sft = args.sft,
+                strategy = args.strategy
                 )
         elif args.dataset_name == "roco":
             # ROCO Radiology is SFT-only, DPO on ROCO is not supported.
@@ -471,7 +479,8 @@ def main():
                 n_components = 1000,
                 variance_weighted = args.variance_weighted,
                 stratify = args.stratify,
-                sft = args.sft
+                sft = args.sft,
+                strategy = args.strategy
                 )
 
         not_split_idx = [i for i, label_0 in enumerate(dataset['train']['label_0'])

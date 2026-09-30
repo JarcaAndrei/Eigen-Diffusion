@@ -133,11 +133,17 @@ def get_strategy_indexes(
     r_cap=None,
     n_components=1000,
     base_path="all_embeddings",
+    strategy="eigen",
 ):
     path = os.path.join(base_path, f"embeddings_{dataset_name}_{fixed_seed}.npz")
     data = np.load(path)
     X = data["X"]
     print("X shape (N=pairs, D):", X.shape)
+
+    if strategy != "eigen":
+        from baselines_pixart import get_baseline_indexes
+        k = n_strat_first + int(n_strat_first * ratio)
+        return get_baseline_indexes(strategy, X if sft else X - data["Y"], k, fixed_seed)
 
     n_components = min(n_components, X.shape[0], X.shape[1])
     pca = PCA(n_components=n_components, random_state=fixed_seed)
