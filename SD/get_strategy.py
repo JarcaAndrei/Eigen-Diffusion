@@ -1,5 +1,6 @@
 import os
 import gc
+import json
 import numpy as np
 import torch
 from sklearn.decomposition import PCA
@@ -133,6 +134,7 @@ def get_strategy_indexes(
     n_components=1000,
     base_path="all_embeddings",
     strategy="eigen",
+    indices_path="baseline_indices",
 ):
     path = os.path.join(base_path, f"embeddings_{dataset_name}_{fixed_seed}.npz")
     data = np.load(path)
@@ -140,9 +142,14 @@ def get_strategy_indexes(
     print("X shape (N=pairs, D):", X.shape)
 
     if strategy != "eigen":
-        from baselines import get_baseline_indexes
+        # precomputed by dataset_creation/select_baselines.py
+        sel_path = os.path.join(indices_path, f"{strategy}_{dataset_name}_{fixed_seed}.json")
+        with open(sel_path) as f:
+            sel = json.load(f)
         k = n_strat_first + int(n_strat_first * ratio)
-        return get_baseline_indexes(strategy, X if sft else X - data["Y"], k, fixed_seed)
+        if (sel["n"], sel["k"]) != (X.shape[0], k):
+            raise ValueError(f"{sel_path} was selected with n={sel['n']}, k={sel['k']}; this run has n={X.shape[0]}, k={k}")
+        return sel["indices"]
 
     n_components = min(n_components, X.shape[0], X.shape[1])
     pca = PCA(n_components=n_components, random_state=fixed_seed)

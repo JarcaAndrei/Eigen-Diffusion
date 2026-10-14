@@ -6,46 +6,58 @@ from sklearn.cluster import kmeans_plusplus
 from threadpoolctl import threadpool_limits
 
 
-def kcenter(F, k, seed):    
-    # Greedy K-Center (Gonzalez 1985)
-    first = int(np.random.default_rng(seed).integers(F.shape[0]))
+def kcenter(F, k, seed):
+    # Greedy K-Center (Gonzalez 1985), squared Euclidean, starting from the first row as in the paper
+    sq = np.einsum("ij,ij->i", F, F)
+    first = 0
     selected = [first]
-    mind = 1.0 - F @ F[first]
+    mind = sq - 2.0 * (F @ F[first]) + sq[first]
     mind[first] = -np.inf
     for _ in range(k - 1):
         nxt = int(np.argmax(mind))
+        # only duplicates left
+        if mind[nxt] <= 0:
+            print(f"kcenter: h = 0 after {len(selected)} heads")
+            break
         selected.append(nxt)
-        np.minimum(mind, 1.0 - F @ F[nxt], out=mind)
+        np.minimum(mind, sq - 2.0 * (F @ F[nxt]) + sq[nxt], out=mind)
         mind[nxt] = -np.inf
     return selected
 
 
 def facility_location(F, k, seed, eps=0.1):
     # Stochastic greedy (Mirzasoleiman et al., AAAI 2015, Alg. 1) & FL (Cornuejols et al., 1977)
-    # adaptation from https://apricot-select.readthedocs.io/en/latest/optimizers/stochastic.html
+    # objective of their Tiny Images experiment, with the origin as the auxiliary exemplar
     n = F.shape[0]
     rng = np.random.default_rng(seed)
-    s = int(n / k * np.log(1 / eps))
+    s = int(np.ceil(n / k * np.log(1 / eps)))
     print(f"facility_location: n={n} k={k} s={s}")
 
-    maxsim = np.full(n, -1.0, dtype=np.float32)
+    sq = np.einsum("ij,ij->i", F, F)
+    mind = sq.copy()
     used = np.zeros(n, dtype=bool)
     selected = []
     with threadpool_limits(4, user_api="blas"):
         for _ in range(k):
             pool = np.flatnonzero(~used)
             cand = pool if pool.size <= s else rng.choice(pool, size=s, replace=False)
-            gains = np.maximum(F[cand] @ F.T - maxsim, 0.0).sum(axis=1)
-            best = int(cand[np.argmax(gains)])
+            d = sq[cand, None] - 2.0 * (F[cand] @ F.T) + sq
+            gains = np.maximum(mind - d, 0.0).sum(axis=1)
+            j = int(np.argmax(gains))
+            best = int(cand[j])
             selected.append(best)
             used[best] = True
-            np.maximum(maxsim, F[best] @ F.T, out=maxsim)
+            np.minimum(mind, d[j], out=mind)
     return selected
 
 
 def kmeans_pp(F, k, seed):
     # k-means++ seeding (Arthur & Vassilvitskii, SODA 2007)
-    return [int(i) for i in kmeans_plusplus(F, n_clusters=k, random_state=seed, n_local_trials=1)[1]]
+    idx = [int(i) for i in kmeans_plusplus(F, n_clusters=k, random_state=seed, n_local_trials=1)[1]]
+    # cut at the first repeated centre (only duplicates left)
+    _, first = np.unique(F[idx], axis=0, return_index=True)
+    repeats = np.setdiff1d(np.arange(len(idx)), first)
+    return idx[:int(repeats[0])] if repeats.size else idx
 
 
 def semdedup(F, k, seed, min_eps=0.00095):
@@ -84,9 +96,14 @@ def semdedup(F, k, seed, min_eps=0.00095):
 
 
 def get_baseline_indexes(strategy, F, k, seed):
-    norms = np.linalg.norm(F, axis=1, keepdims=True)
-    norms[norms == 0] = 1
-    F = F / norms
+    # float64 so the pixel distances are exact
+    F = np.asarray(F, dtype=np.float32 if strategy == "semdedup" else np.float64)
+    if strategy == "facility_location":
+        # mean-centred, unit norm, as in Mirzasoleiman et al.
+        F = F - F.mean(axis=1, keepdims=True)
+        norms = np.linalg.norm(F, axis=1, keepdims=True)
+        norms[norms == 0] = 1
+        F = F / norms
     select = {"kcenter": kcenter, "facility_location": facility_location, "kmeans++": kmeans_pp, "semdedup": semdedup}
     t0 = time.perf_counter()
     idx = select[strategy](F, k, seed)

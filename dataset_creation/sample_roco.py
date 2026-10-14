@@ -50,7 +50,7 @@ def main():
 
     wcs = sampled["wc"]
     print(f"Saved {len(sampled)} captions to {OUT_TXT}")
-    print(f"Word count — mean: {wcs.mean():.1f}, median: {wcs.median():.0f}, min: {wcs.min()}, max: {wcs.max()}")
+    print(f"Word count: mean {wcs.mean():.1f}, median: {wcs.median():.0f}, min: {wcs.min()}, max: {wcs.max()}")
 
 
 if __name__ == "__main__":

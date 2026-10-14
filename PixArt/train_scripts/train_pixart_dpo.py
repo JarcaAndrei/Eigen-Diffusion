@@ -41,9 +41,6 @@ from diffusers.training_utils import compute_snr
 from diffusers.utils import check_min_version
 from get_strategy_pixart import get_strategy_indexes
 
-# If the PixArt weights require authentication, log in via the HF CLI
-# (`huggingface-cli login`) or the HF_TOKEN environment variable rather than
-# hardcoding a token here.
 check_min_version("0.25.0.dev0")
 
 logger = get_logger(__name__, log_level="INFO")
@@ -72,7 +69,7 @@ def parse_args():
     parser.add_argument("--transformer_init", type=str, default="",
                         help="Optional: init transformer from a different checkpoint than pretrained_model_name_or_path.")
     parser.add_argument("--dataset_name", type=str, default=None,
-                        help="HuggingFace dataset name (e.g. yuvalkirstain/pickapic_v2) or local path.")
+                        help="pickapic-anonymous/pickapic_v1 | rapidata | hpdv2 | roco.")
     parser.add_argument("--dataset_config_name", type=str, default=None)
     parser.add_argument("--train_data_dir", type=str, default=None)
     parser.add_argument("--image_column", type=str, default="jpg_0",
@@ -125,7 +122,7 @@ def parse_args():
     parser.add_argument("--sft", action="store_true",
                         help="Run Supervised Fine-Tuning (MSE) instead of DPO.")
     parser.add_argument("--beta_dpo", type=float, default=5000,
-                        help="DPO temperature β controlling KL-penalty strength. "
+                        help="DPO beta, controlling the KL-penalty strength. "
                              "Higher = less deviation from reference policy.")
     parser.add_argument("--proportion_empty_prompts", type=float, default=0.2,
                         help="Fraction of prompts replaced with empty string (classifier-free guidance support).")
@@ -150,13 +147,13 @@ def parse_args():
     parser.add_argument("--resume_from_checkpoint", type=str, default="latest")
 
     parser.add_argument("--validation_epochs", type=int, default=100,
-                        help="Run inference samples every N optimizer steps (0 to disable).")
+                        help="Run validation every N optimizer steps.")
     parser.add_argument("--num_inference_steps", type=int, default=20,
                         help="Number of denoising steps for validation inference.")
     parser.add_argument("--validation_prompt", type=str, default=" Computerized tomography scan prior to wound washout. The scan reveals mild extra and intracranial fluid collection along the craniotomy with diffuse intracranial leptomeningeal enhancement\n",
-                        help="Number of denoising steps for validation inference.")
+                        help="Prompt for the validation images.")
     parser.add_argument("--validation_images", type=int, default=5,
-                        help="Number of denoising steps for validation inference.")
+                        help="Number of validation images.")
     parser.add_argument("--first_eigen", type=int, default=1024,
                         help="Stage-1 anchor budget (n_1).")
     parser.add_argument("--bin_count", type=int, default=4,
@@ -308,7 +305,7 @@ def main():
     transformer.requires_grad_(False)
     lora_config = LoraConfig(
         r=args.rank,
-        lora_alpha=args.rank,  # scale = alpha/r = 1.0, matches previous SD1.5 config
+        lora_alpha=args.rank,  # scale = alpha/r = 1.0, as in SD/train.py
         target_modules=["to_q", "to_k", "to_v", "to_out.0"],
         lora_dropout=0.01,
         bias="none",
@@ -717,7 +714,7 @@ def main():
             path = dirs[-1] if dirs else None
 
         if path is None:
-            accelerator.print("No checkpoint found — starting fresh.")
+            accelerator.print("No checkpoint found, starting fresh.")
             args.resume_from_checkpoint = None
         else:
             accelerator.print(f"Resuming from checkpoint {path}")
@@ -757,8 +754,8 @@ def main():
                 # -------- Prepare input images -------------------------------- #
                 if args.train_method == "dpo":
                     # pixel_values: [B, 2C, H, W]
-                    # chunk(2, dim=1) → two [B, C, H, W] tensors (preferred first)
-                    # cat along batch → [2B, C, H, W]  (first B = preferred, last B = dispreferred)
+                    # chunk(2, dim=1) -> two [B, C, H, W] tensors (preferred first)
+                    # cat along batch -> [2B, C, H, W]  (first B = preferred, last B = dispreferred)
                     feed_pixel_values = torch.cat(batch["pixel_values"].chunk(2, dim=1))
                     if args.choice_model and choice_model_says_flip(batch):
                         feed_pixel_values = feed_pixel_values.flip(0)
@@ -824,7 +821,7 @@ def main():
                         [args.resolution, args.resolution], dtype=weight_dtype, device=latents.device
                     ).repeat(bsz, 1)
                     ar_tensor = torch.tensor(
-                        [1.0], dtype=weight_dtype, device=latents.device  # square images → AR=1
+                        [1.0], dtype=weight_dtype, device=latents.device  # square images, AR=1
                     ).repeat(bsz, 1)
                     added_cond_kwargs = {"resolution": res_tensor, "aspect_ratio": ar_tensor}
 
@@ -957,7 +954,7 @@ def main():
                         images = []
                         with torch.inference_mode():
                             for _ in range(args.validation_images):
-                                images.append(pipe_eval(args.validation_prompt, num_inference_steps=20, generator=generator).images[0])
+                                images.append(pipe_eval(args.validation_prompt, num_inference_steps=args.num_inference_steps, generator=generator).images[0])
 
                         for index, temp_image in enumerate(images):
 
